@@ -152,7 +152,7 @@ export default function App() {
                     <span className="platform">Windows</span>
                     {userOS === 'windows' && <span className="badge">Your OS</span>}
                   </div>
-                  <p className="card-desc">64-bit installer for Windows 10 & 11.</p>
+                  <p className="card-desc">Windows 10 & 11.</p>
                 </div>
 
                 <div className="card-actions">
