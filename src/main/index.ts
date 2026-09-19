@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, session } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, session, nativeImage } from 'electron'
 import { DatabaseSync } from 'node:sqlite'
 import { join } from 'path'
 import fs from 'fs'
@@ -858,6 +858,7 @@ function sendLog(message: string): void {
 }
 
 function createWindow(): void {
+  const appIcon = nativeImage.createFromPath(icon)
   mainWindow = new BrowserWindow({
     title: 'FuckNptel',
     width: 1200,
@@ -868,12 +869,13 @@ function createWindow(): void {
     frame: true,
     autoHideMenuBar: true,
     backgroundColor: '#1a1b26',
-    icon,
+    icon: appIcon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
     }
   })
+  mainWindow.setIcon(appIcon)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow!.show()
@@ -1056,7 +1058,8 @@ ipcMain.handle('set-setting', (_event, key: string, value: string) => {
 })
 
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.fuck-nptel')
+  app.setName('FuckNptel')
+  electronApp.setAppUserModelId('com.fucknptel.desktop')
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)

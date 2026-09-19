@@ -5,7 +5,6 @@ node_modules/
 # Build & Bundle outputs
 dist/
 out/
-build/
 *.app
 *.exe
 *.dmg
