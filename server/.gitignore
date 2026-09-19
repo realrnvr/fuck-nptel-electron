@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Vercel CLI cache
+.vercel/
+
+# Logs
+*.log
