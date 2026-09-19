@@ -13,6 +13,9 @@ jobs:
   release:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    env:
+      VITE_BACKEND_URL: https://fuck-nptel-electron.vercel.app/api/solve
+      VITE_BACKEND_SECRET: fd304965-f132-4708-85e8-66921a42d44b
     strategy:
       fail-fast: false
       matrix:

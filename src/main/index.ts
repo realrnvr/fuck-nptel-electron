@@ -548,16 +548,20 @@ async function performPlaywrightLogin(): Promise<{
   }
 }
 
+const DEFAULT_BACKEND_URL = 'https://fuck-nptel-electron.vercel.app/api/solve'
+const DEFAULT_BACKEND_SECRET = 'fd304965-f132-4708-85e8-66921a42d44b'
+
 async function solveWithBackend(prompt: string, modelName: string): Promise<string> {
   const env = (import.meta as any).env || {}
   let rawUrl =
     (env.VITE_BACKEND_URL as string | undefined) ||
     process.env.VITE_BACKEND_URL ||
-    getSetting('backend_url')
+    getSetting('backend_url') ||
+    DEFAULT_BACKEND_URL
   const backendSecret =
     (env.VITE_BACKEND_SECRET as string | undefined) ||
     process.env.VITE_BACKEND_SECRET ||
-    'fucknptel_secret'
+    DEFAULT_BACKEND_SECRET
 
   if (!rawUrl || !rawUrl.trim()) {
     throw new Error(
