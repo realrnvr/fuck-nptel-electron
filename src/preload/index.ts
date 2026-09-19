@@ -51,7 +51,9 @@ const api = {
     selectedAnswer: string
   }> | null> => ipcRenderer.invoke('get-assignment-detail', id),
   getSetting: (key: string): Promise<string | null> => ipcRenderer.invoke('get-setting', key),
-  setSetting: (key: string, value: string): Promise<void> => ipcRenderer.invoke('set-setting', key, value)
+  setSetting: (key: string, value: string): Promise<void> => ipcRenderer.invoke('set-setting', key, value),
+  deleteHistoryItem: (id: string): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke('delete-history', id)
 }
 
 const electronAPIWrapper = {

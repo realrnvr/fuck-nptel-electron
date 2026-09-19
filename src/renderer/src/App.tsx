@@ -5,6 +5,20 @@ import type {
   AssignmentDetailItem
 } from '../../preload/index.d'
 
+function formatHistoryTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return ''
+  try {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return String(dateStr)
+    const day = d.getDate()
+    const month = d.toLocaleString('en-US', { month: 'short' })
+    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+    return `${day} ${month} ${time}`
+  } catch {
+    return String(dateStr)
+  }
+}
+
 type ViewMode = 'welcome' | 'logs' | 'detail'
 
 export default function App(): React.JSX.Element {
@@ -27,7 +41,7 @@ export default function App(): React.JSX.Element {
   // ── Models ──────────────────────────────────
   const [models, setModels] = useState<AvailableModel[]>([])
   const [selectedModel, setSelectedModel] = useState<string>(
-    () => localStorage.getItem('nptel_model') || 'meta-llama/llama-4-scout-17b-16e-instruct'
+    () => localStorage.getItem('nptel_model') || 'llama-3.3-70b-versatile'
   )
 
   // ── Solver ──────────────────────────────────
@@ -214,6 +228,20 @@ export default function App(): React.JSX.Element {
       setAuth({ nptel: false })
       setAuthError(null)
       setViewMode('welcome')
+    }
+  }
+
+  const handleDeleteHistory = async (e: FormEvent | React.MouseEvent, id: string): Promise<void> => {
+    e.stopPropagation()
+    try {
+      await window.api.deleteHistoryItem(id)
+      setHistory((prev) => prev.filter((item) => item.id !== id))
+      if (selectedHistoryId === id) {
+        setSelectedHistoryId(null)
+        setViewMode('welcome')
+      }
+    } catch (err) {
+      console.error('Failed to delete history entry:', err)
     }
   }
 
@@ -504,16 +532,20 @@ export default function App(): React.JSX.Element {
                     className={`history-item ${selectedHistoryId === item.id ? 'active' : ''}`}
                     onClick={() => void handleViewDetail(item)}
                   >
-                    <div className="history-item-title">{item.title || 'Untitled'}</div>
+                    <div className="history-item-header">
+                      <div className="history-item-title">{item.title || 'Untitled'}</div>
+                      <button
+                        className="history-trash-btn"
+                        title="Delete entry"
+                        onClick={(e) => void handleDeleteHistory(e, item.id)}
+                      >
+                        ✕
+                      </button>
+                    </div>
                     <div className="history-item-meta">
                       <span className={`history-badge ${item.status}`}>{item.status}</span>
-                      <span>{item.score || '—'}</span>
-                      <span>
-                        {item.submitted_at
-                          ? new Date(item.submitted_at).toLocaleDateString()
-                          : item.created_at
-                            ? new Date(item.created_at).toLocaleDateString()
-                            : ''}
+                      <span className="history-item-date">
+                        {formatHistoryTime(item.submitted_at || item.created_at)}
                       </span>
                     </div>
                   </button>

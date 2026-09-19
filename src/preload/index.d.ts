@@ -49,6 +49,7 @@ export interface NptelApi {
   getAssignmentDetail: (id: string) => Promise<AssignmentDetailItem[] | null>
   getSetting: (key: string) => Promise<string | null>
   setSetting: (key: string, value: string) => Promise<void>
+  deleteHistoryItem: (id: string) => Promise<{ success: boolean; error?: string }>
 }
 
 declare global {

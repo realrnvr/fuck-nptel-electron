@@ -48,24 +48,28 @@ function getDb(): DatabaseSync {
 }
 
 const LOCAL_MODELS = [
-  { id: 'meta-llama/llama-4-scout-17b-16e-instruct', name: 'Llama 4 Scout 17B', provider: 'Groq', tag: 'Flagship', default: true },
-  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', provider: 'Groq', tag: 'Versatile' },
-  { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B', provider: 'Groq', tag: 'Fast' },
+  {
+    id: 'openai/gpt-oss-120b',
+    name: 'GPT OSS 120B',
+    provider: 'Groq',
+    tag: 'Flagship',
+    default: true
+  },
   { id: 'qwen/qwen3.8-27b', name: 'Qwen 3.8 27B', provider: 'Groq', tag: 'Balanced' },
-  { id: 'moonshotai/kimi-k2-instruct', name: 'Kimi K2', provider: 'Groq', tag: 'Reasoning' },
-  { id: 'compound-beta', name: 'Compound Beta', provider: 'Groq', tag: 'Agentic' },
-  { id: 'compound-beta-mini', name: 'Compound Beta Mini', provider: 'Groq', tag: 'Fast' }
+  { id: 'openai/gpt-oss-20b', name: 'GPT OSS 20B', provider: 'Groq', tag: 'Fast' },
+  { id: 'groq/compound', name: 'Compound', provider: 'Groq', tag: 'Agentic' },
+  { id: 'groq/compound-mini', name: 'Compound Mini', provider: 'Groq', tag: 'Lightweight' }
 ]
 
 const SYSTEM_PROMPT = `You are an expert at answering multiple-choice questions from NPTEL courses.
-You will be given a list of questions, each with 4 options.
-For each question, respond with ONLY the index (0-3) of the correct answer.
+You will be given a list of questions, each with options.
+For each question, select the 0-based index (0, 1, 2, or 3) of the correct answer.
 
 Respond in this exact JSON format:
-{"answers": [0, 2, 1, 3, ...]}
+{"answers": [0, 2, 1, 3]}
 
-Where each number is the 0-based index of the correct option.
-Do NOT include any explanation, just the JSON.`
+Where each number in the array corresponds to the 0-based index of the option for Question 1, Question 2, etc.
+Do NOT include any markdown formatting, explanations, or extra text outside the JSON object.`
 
 interface SavedSession {
   email: string
@@ -119,7 +123,8 @@ function clearSavedSession(): void {
 
 function getSetting(key: string): string | null {
   try {
-    const row = getDb().prepare('SELECT value FROM settings WHERE key = ?').get(key) as { value: string } | undefined
+    const row = getDb().prepare('SELECT value FROM settings WHERE key = ?').get(key) as
+      { value: string } | undefined
     return row ? String(row.value) : null
   } catch {
     return null
@@ -158,16 +163,16 @@ function loadHistory(): Array<{
          ORDER BY created_at DESC`
       )
       .all() as Array<{
-        id: string
-        title: string
-        course_name: string
-        status: string
-        score: string | null
-        error: string | null
-        created_at: string
-        submitted_at: string | null
-        details: string | null
-      }>
+      id: string
+      title: string
+      course_name: string
+      status: string
+      score: string | null
+      error: string | null
+      created_at: string
+      submitted_at: string | null
+      details: string | null
+    }>
 
     return rows.map((row) => ({
       id: String(row.id),
@@ -185,17 +190,19 @@ function loadHistory(): Array<{
   }
 }
 
-function saveHistory(items: Array<{
-  id: string
-  title: string
-  course_name: string
-  status: string
-  score: string | null
-  error: string | null
-  created_at: string
-  submitted_at: string | null
-  details: string | null
-}>): void {
+function saveHistory(
+  items: Array<{
+    id: string
+    title: string
+    course_name: string
+    status: string
+    score: string | null
+    error: string | null
+    created_at: string
+    submitted_at: string | null
+    details: string | null
+  }>
+): void {
   try {
     const db = getDb()
     db.exec('BEGIN')
@@ -226,7 +233,15 @@ function saveHistory(items: Array<{
 async function clearNptelAuthState(): Promise<void> {
   try {
     await session.defaultSession.clearStorageData({
-      storages: ['cookies', 'filesystem', 'indexdb', 'localstorage', 'shadercache', 'serviceworkers', 'cachestorage']
+      storages: [
+        'cookies',
+        'filesystem',
+        'indexdb',
+        'localstorage',
+        'shadercache',
+        'serviceworkers',
+        'cachestorage'
+      ]
     })
   } catch {}
 }
@@ -383,7 +398,12 @@ async function launchBrowser(headless = true): Promise<BrowserContext> {
   return context
 }
 
-async function performPlaywrightLogin(): Promise<{ success: boolean; email?: string; error?: string; storageState?: string }> {
+async function performPlaywrightLogin(): Promise<{
+  success: boolean
+  email?: string
+  error?: string
+  storageState?: string
+}> {
   try {
     const rememberedEmail = loadSavedSession()?.email
     const context = await chromium.launchPersistentContext(PROFILE_PATH, {
@@ -408,10 +428,15 @@ async function performPlaywrightLogin(): Promise<{ success: boolean; email?: str
         if (responseEmail) return
         try {
           const contentType = response.headers()['content-type'] || ''
-          if (!contentType.includes('application/json') && !contentType.includes('text/plain')) return
+          if (!contentType.includes('application/json') && !contentType.includes('text/plain'))
+            return
 
           const text = await response.text()
-          if (!text.includes('loggedIn') || (!text.includes('email') && !text.includes('user_email'))) return
+          if (
+            !text.includes('loggedIn') ||
+            (!text.includes('email') && !text.includes('user_email'))
+          )
+            return
 
           const payload = JSON.parse(text) as {
             loggedIn?: boolean | string
@@ -476,7 +501,11 @@ async function performPlaywrightLogin(): Promise<{ success: boolean; email?: str
         return { success: true, email: fallbackEmail, storageState: result }
       }
 
-      return { success: false, error: 'Login was not detected in the popup window. Please complete sign-in before closing the window.' }
+      return {
+        success: false,
+        error:
+          'Login was not detected in the popup window. Please complete sign-in before closing the window.'
+      }
     } finally {
       await context.close().catch(() => undefined)
     }
@@ -489,18 +518,32 @@ async function performPlaywrightLogin(): Promise<{ success: boolean; email?: str
 }
 
 async function solveWithBackend(prompt: string, modelName: string): Promise<string> {
-  const backendUrl = getSetting('backend_url') || process.env.VITE_BACKEND_URL || process.env.BACKEND_URL
-  const backendSecret = process.env.VITE_BACKEND_SECRET || process.env.BACKEND_SECRET || 'fucknptel_secret'
-  
-  if (!backendUrl) {
-    throw new Error('Backend server URL is not configured. Please set BACKEND_URL in your environment or settings.')
+  const env = (import.meta as any).env || {}
+  let rawUrl =
+    (env.VITE_BACKEND_URL as string | undefined) ||
+    process.env.VITE_BACKEND_URL ||
+    getSetting('backend_url')
+  const backendSecret =
+    (env.VITE_BACKEND_SECRET as string | undefined) ||
+    process.env.VITE_BACKEND_SECRET ||
+    'fucknptel_secret'
+
+  if (!rawUrl || !rawUrl.trim()) {
+    throw new Error(
+      'Backend server URL is not configured. Please set VITE_BACKEND_URL in your environment or settings.'
+    )
   }
+
+  const backendUrl = rawUrl
+    .trim()
+    .replace(/^http::\/\//i, 'http://')
+    .replace(/^https::\/\//i, 'https://')
 
   const response = await fetch(backendUrl, {
     method: 'POST',
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${backendSecret}`
+      Authorization: `Bearer ${backendSecret}`
     },
     body: JSON.stringify({ prompt, model: modelName })
   })
@@ -513,7 +556,7 @@ async function solveWithBackend(prompt: string, modelName: string): Promise<stri
 }
 
 async function solveWithGroq(prompt: string, modelName?: string): Promise<string> {
-  const model = modelName || 'meta-llama/llama-4-scout-17b-16e-instruct'
+  const model = modelName || 'openai/gpt-oss-120b'
   const useCustomKey = getSetting('use_custom_api_key') === 'true'
 
   if (!useCustomKey) {
@@ -540,7 +583,10 @@ async function solveWithGroq(prompt: string, modelName?: string): Promise<string
   return response.choices[0]?.message?.content || '{}'
 }
 
-async function solveQuestions(questions: Array<{ text: string; options: string[] }>, selectedModel?: string): Promise<Array<{ text: string; options: string[]; answerIndex: number }>> {
+async function solveQuestions(
+  questions: Array<{ text: string; options: string[] }>,
+  selectedModel?: string
+): Promise<Array<{ text: string; options: string[]; answerIndex: number }>> {
   if (questions.length === 0) return []
 
   const prompt = questions
@@ -550,7 +596,7 @@ async function solveQuestions(questions: Array<{ text: string; options: string[]
     })
     .join('\n\n')
 
-  const model = selectedModel || 'meta-llama/llama-4-scout-17b-16e-instruct'
+  const model = selectedModel || 'openai/gpt-oss-120b'
 
   sendLog(`[SOLVER] Sending ${questions.length} questions to ${model}...`)
   const responseText = await solveWithGroq(prompt, model)
@@ -558,22 +604,27 @@ async function solveQuestions(questions: Array<{ text: string; options: string[]
 
   let answerIndices: number[]
   try {
-    const parsed = JSON.parse(responseText)
-    answerIndices = parsed.answers
-    if (!Array.isArray(answerIndices)) throw new Error('Response is not an array')
-  } catch {
-    console.warn('[SOLVER] Failed to parse JSON, falling back to random picks')
-    sendLog('[SOLVER] Failed to parse JSON, falling back to random picks')
-    answerIndices = questions.map(() => Math.floor(Math.random() * 4))
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+    const jsonStr = jsonMatch ? jsonMatch[0] : responseText
+    const parsed = JSON.parse(jsonStr)
+
+    if (Array.isArray(parsed.answers)) {
+      answerIndices = parsed.answers
+    } else if (Array.isArray(parsed)) {
+      answerIndices = parsed
+    } else {
+      throw new Error(`Invalid JSON schema in model response`)
+    }
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err)
+    sendLog(`[SOLVER] Failed to parse model output: ${errMsg}`)
+    throw new Error(`Model returned an invalid JSON response. Aborting assignment solve. Raw output: ${responseText.slice(0, 100)}`)
   }
 
-  answerIndices = answerIndices.map((idx) => {
-    if (typeof idx !== 'number' || idx < 0 || idx > 3) return Math.floor(Math.random() * 4)
-    return idx
-  })
-
-  while (answerIndices.length < questions.length) {
-    answerIndices.push(Math.floor(Math.random() * 4))
+  if (answerIndices.length < questions.length) {
+    throw new Error(
+      `Model returned answers for only ${answerIndices.length} of ${questions.length} questions. Aborting assignment solve.`
+    )
   }
 
   sendLog(`[SOLVER] Answer indices determined for ${questions.length} questions`)
@@ -583,7 +634,13 @@ async function solveQuestions(questions: Array<{ text: string; options: string[]
   }))
 }
 
-async function scrapeAssignment(assignmentUrl: string): Promise<{ title: string; courseTitle: string; questions: Array<{ text: string; options: string[] }> }> {
+async function scrapeAssignment(
+  assignmentUrl: string
+): Promise<{
+  title: string
+  courseTitle: string
+  questions: Array<{ text: string; options: string[] }>
+}> {
   sendLog(`[NPTEL] Scraping assignment: ${assignmentUrl}`)
   const context = await launchBrowser(true)
 
@@ -598,7 +655,11 @@ async function scrapeAssignment(assignmentUrl: string): Promise<{ title: string;
     let currentUrl = page.url()
     sendLog(`[NPTEL] Page loaded: "${title}" (${currentUrl})`)
 
-    if (currentUrl.includes('/preview/') || currentUrl.includes('accounts.google.com') || currentUrl.includes('login')) {
+    if (
+      currentUrl.includes('/preview/') ||
+      currentUrl.includes('accounts.google.com') ||
+      currentUrl.includes('login')
+    ) {
       sendLog('[NPTEL] Detected unauthenticated page (preview/login). Attempting auto sign-in...')
       const signInBtn = await page.$(
         'a:has-text("Sign-In"), a:has-text("Sign-in"), a:has-text("Sign In"), a:has-text("Login"), button:has-text("Sign In"), button:has-text("Login"), .login-btn, [href*="login"]'
@@ -610,7 +671,9 @@ async function scrapeAssignment(assignmentUrl: string): Promise<{ title: string;
         await page.waitForTimeout(4000)
 
         try {
-          const googleAccount = await page.$('[data-email], [class*="account-item"], [class*="identity"]')
+          const googleAccount = await page.$(
+            '[data-email], [class*="account-item"], [class*="identity"]'
+          )
           if (googleAccount) {
             sendLog('[NPTEL] Choosing Google account...')
             await googleAccount.click()
@@ -659,14 +722,23 @@ async function scrapeAssignment(assignmentUrl: string): Promise<{ title: string;
         }
       })
 
-      const assignmentTitle = document.querySelector('.assessment-header-title, [class*="assessment-header-title"], [class*="header-title"]')?.textContent?.trim() || ''
+      const assignmentTitle =
+        document
+          .querySelector(
+            '.assessment-header-title, [class*="assessment-header-title"], [class*="header-title"]'
+          )
+          ?.textContent?.trim() || ''
       return { assignmentTitle, questions }
     })
 
     const parsedTitle = pageData.assignmentTitle || 'Assignment'
-    const parsedCourse = (await page.title()).replace(/Course:\s*|Preview:\s*|\|\s*SWAYAM/gi, '').trim()
+    const parsedCourse = (await page.title())
+      .replace(/Course:\s*|Preview:\s*|\|\s*SWAYAM/gi, '')
+      .trim()
 
-    sendLog(`[NPTEL] Successfully parsed "${parsedTitle}" (${parsedCourse}) with ${pageData.questions.length} questions!`)
+    sendLog(
+      `[NPTEL] Successfully parsed "${parsedTitle}" (${parsedCourse}) with ${pageData.questions.length} questions!`
+    )
 
     return {
       title: parsedTitle,
@@ -681,12 +753,15 @@ async function scrapeAssignment(assignmentUrl: string): Promise<{ title: string;
   }
 }
 
-async function submitAssignment(assignmentUrl: string, answerIndices: number[]): Promise<{ success: boolean; score?: string }> {
+async function submitAssignment(
+  assignmentUrl: string,
+  answerIndices: number[]
+): Promise<{ success: boolean; score?: string }> {
   sendLog(`[NPTEL] Submitting assignment: ${assignmentUrl}`)
   const context = await launchBrowser(true)
 
   try {
-    const page = await context.newPage();
+    const page = await context.newPage()
     sendLog(`[NPTEL] Navigating for submission to: ${assignmentUrl}`)
     await page.goto(assignmentUrl, { waitUntil: 'domcontentloaded', timeout: 30_000 })
     await page.waitForTimeout(5000)
@@ -719,7 +794,9 @@ async function submitAssignment(assignmentUrl: string, answerIndices: number[]):
         const text = document.body?.innerText || ''
         const submissionMatch = text.match(/last recorded submission was on\s*([^\n\r.]+)/i)
         if (submissionMatch) return `Submitted (${submissionMatch[1].trim()})`
-        const scoreEl = document.querySelector('[class*="score"], [class*="result"], [class*="grade"]')
+        const scoreEl = document.querySelector(
+          '[class*="score"], [class*="result"], [class*="grade"]'
+        )
         return scoreEl?.textContent?.trim() || null
       })
 
@@ -802,7 +879,12 @@ ipcMain.handle('import-session', async (_event, sessionData: string) => {
     let email = 'connected-user@nptel.ac.in'
     try {
       const parsed = JSON.parse(trimmed)
-      if (parsed && typeof parsed === 'object' && parsed.email && typeof parsed.email === 'string') {
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        parsed.email &&
+        typeof parsed.email === 'string'
+      ) {
         email = parsed.email
       }
     } catch {}
@@ -825,19 +907,26 @@ ipcMain.handle('check-auth', async () => {
 ipcMain.handle('solve-assignment', async (_event, url: string, model: string) => {
   try {
     const assignment = await scrapeAssignment(url)
-    const solved = await solveQuestions(assignment.questions, model || 'meta-llama/llama-4-scout-17b-16e-instruct')
-    
+    const solved = await solveQuestions(
+      assignment.questions,
+      model || 'openai/gpt-oss-120b'
+    )
+
     sendLog('[SOLVER] Preparing submission...')
     const answerIndices = solved.map((entry) => entry.answerIndex)
     const submitRes = await submitAssignment(url, answerIndices)
-    sendLog(submitRes.success ? '[NPTEL] Assignment submitted successfully!' : '[NPTEL] Submission failed')
+    sendLog(
+      submitRes.success ? '[NPTEL] Assignment submitted successfully!' : '[NPTEL] Submission failed'
+    )
 
-    const details = JSON.stringify(solved.map((q) => ({
-      question: q.text,
-      options: q.options,
-      selectedIndex: q.answerIndex,
-      selectedAnswer: q.options[q.answerIndex] || ''
-    })))
+    const details = JSON.stringify(
+      solved.map((q) => ({
+        question: q.text,
+        options: q.options,
+        selectedIndex: q.answerIndex,
+        selectedAnswer: q.options[q.answerIndex] || ''
+      }))
+    )
 
     const result = {
       id: `${Date.now()}`,
@@ -855,7 +944,14 @@ ipcMain.handle('solve-assignment', async (_event, url: string, model: string) =>
     history.unshift(result)
     saveHistory(history)
 
-    return { id: result.id, title: result.title, course_name: result.course_name, status: result.status, score: result.score, error: result.error }
+    return {
+      id: result.id,
+      title: result.title,
+      course_name: result.course_name,
+      status: result.status,
+      score: result.score,
+      error: result.error
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     console.error('[IPC] solve-assignment failed:', message)
@@ -873,13 +969,21 @@ ipcMain.handle('get-history', async () => {
 
 ipcMain.handle('get-assignment-detail', async (_event, id: string) => {
   try {
-    const row = getDb()
-      .prepare('SELECT details FROM assignment_history WHERE id = ?')
-      .get(id) as { details: string | null } | undefined
+    const row = getDb().prepare('SELECT details FROM assignment_history WHERE id = ?').get(id) as
+      { details: string | null } | undefined
     if (!row?.details) return null
     return JSON.parse(row.details)
   } catch {
     return null
+  }
+})
+
+ipcMain.handle('delete-history', (_event, id: string) => {
+  try {
+    getDb().prepare('DELETE FROM assignment_history WHERE id = ?').run(id)
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: String(err) }
   }
 })
 

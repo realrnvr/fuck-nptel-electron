@@ -1,12 +1,13 @@
 export const SYSTEM_PROMPT = [
   'You are an expert at answering multiple-choice questions from NPTEL courses.',
-  'The user will provide a question and its options.',
-  'You must select the most accurate option(s) based on your knowledge.',
-  'You MUST format your output strictly as a JSON object, like this:',
-  '{ "answerIndex": <number>, "reason": "<short explanation>" }',
+  'You will be given a list of questions, each with options.',
+  'For each question, select the 0-based index (0, 1, 2, or 3) of the correct answer.',
   '',
-  'The answerIndex should be the 0-based index of the correct option.',
-  'Do not output anything else besides the JSON.',
+  'Respond in this exact JSON format:',
+  '{"answers": [0, 2, 1, 3]}',
+  '',
+  'Where each number in the array corresponds to the 0-based index of the option for Question 1, Question 2, etc.',
+  'Do NOT include any markdown formatting, explanations, or extra text outside the JSON object.',
 ].join('\n');
 
-export const DEFAULT_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
+export const DEFAULT_MODEL = 'openai/gpt-oss-120b';
