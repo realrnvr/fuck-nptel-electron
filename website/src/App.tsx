@@ -100,12 +100,7 @@ export default function App() {
       {/* Top Bar */}
       <header className="header">
         <div className="brand">FuckNptel</div>
-        <a
-          href={`https://github.com/${REPO}`}
-          target="_blank"
-          rel="noreferrer"
-          className="gh-link"
-        >
+        <a href={`https://github.com/${REPO}`} target="_blank" rel="noreferrer" className="gh-link">
           GitHub ↗
         </a>
       </header>
@@ -120,9 +115,10 @@ export default function App() {
               <span className="version-tag">{release?.tag_name || 'v1.0.0'}</span>
             )}
           </div>
-          <h1 className="title">FUCK THOSE NPTEL ASSIGNMENT USE FN TO SOLVE THEM</h1>
+          <h1 className="title">FUCK THOSE NPTEL ASSIGNMENTS USE FN' TO SOLVE THEM</h1>
           <p className="subtitle">
-            Autonomous desktop app that scrapes assignments, reasons with Groq AI, and submits answers directly.
+            Autonomous desktop app that scrapes assignments, reasons with Groq AI, and submits
+            answers directly.
           </p>
         </div>
 
@@ -156,9 +152,7 @@ export default function App() {
                     <span className="platform">Windows</span>
                     {userOS === 'windows' && <span className="badge">Your OS</span>}
                   </div>
-                  <p className="card-desc">
-                    64-bit installer for Windows 10 & 11.
-                  </p>
+                  <p className="card-desc">64-bit installer for Windows 10 & 11.</p>
                 </div>
 
                 <div className="card-actions">
@@ -187,16 +181,13 @@ export default function App() {
                     <span className="platform">macOS</span>
                     {userOS === 'mac' && <span className="badge">Your OS</span>}
                   </div>
-                  <p className="card-desc">
-                    Universal binary for Apple Silicon & Intel.
-                  </p>
+                  <p className="card-desc">Universal binary for Apple Silicon & Intel.</p>
                 </div>
 
                 <div className="card-actions">
                   <a
                     href={
-                      macAsset?.browser_download_url ||
-                      `https://github.com/${REPO}/releases/latest`
+                      macAsset?.browser_download_url || `https://github.com/${REPO}/releases/latest`
                     }
                     className="btn primary"
                   >
@@ -218,9 +209,7 @@ export default function App() {
                     <span className="platform">Linux</span>
                     {userOS === 'linux' && <span className="badge">Your OS</span>}
                   </div>
-                  <p className="card-desc">
-                    Standalone AppImage and Debian packages.
-                  </p>
+                  <p className="card-desc">Standalone AppImage and Debian packages.</p>
                 </div>
 
                 <div className="card-actions">
