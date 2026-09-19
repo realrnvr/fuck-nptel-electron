@@ -50,6 +50,9 @@ export interface NptelApi {
   getSetting: (key: string) => Promise<string | null>
   setSetting: (key: string, value: string) => Promise<void>
   deleteHistoryItem: (id: string) => Promise<{ success: boolean; error?: string }>
+  minimizeWindow: () => Promise<void>
+  maximizeWindow: () => Promise<void>
+  closeWindow: () => Promise<void>
 }
 
 declare global {

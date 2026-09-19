@@ -9,6 +9,13 @@ import { chromium, type BrowserContext } from 'playwright'
 const DB_PATH = join(app.getPath('userData'), 'fuck-nptel.sqlite')
 const PROFILE_PATH = join(app.getPath('userData'), 'nptel-profile')
 
+if (app.isPackaged) {
+  const bundledBrowser = join(process.resourcesPath, 'ms-playwright')
+  if (fs.existsSync(bundledBrowser)) {
+    process.env.PLAYWRIGHT_BROWSERS_PATH = bundledBrowser
+  }
+}
+
 let dbInstance: DatabaseSync | null = null
 
 function getDb(): DatabaseSync {
@@ -372,10 +379,10 @@ async function hasNptelAuthCookie(context: BrowserContext): Promise<boolean> {
   })
 }
 
-async function launchBrowser(headless = true): Promise<BrowserContext> {
+async function createPersistentContext(headless = true): Promise<BrowserContext> {
   fs.mkdirSync(PROFILE_PATH, { recursive: true })
 
-  const context = await chromium.launchPersistentContext(PROFILE_PATH, {
+  const baseOptions = {
     headless,
     args: [
       '--no-sandbox',
@@ -384,7 +391,40 @@ async function launchBrowser(headless = true): Promise<BrowserContext> {
       '--disable-blink-features=AutomationControlled'
     ],
     viewport: { width: 1280, height: 800 }
-  })
+  }
+
+  // Priority order:
+  // 1. Playwright Chromium (default / bundled)
+  // 2. Installed Google Chrome ('chrome')
+  // 3. Installed Microsoft Edge ('msedge')
+  const attempts: { label: string; channel?: string }[] = [
+    { label: 'Playwright Chromium' },
+    { label: 'Google Chrome', channel: 'chrome' },
+    { label: 'Microsoft Edge', channel: 'msedge' }
+  ]
+
+  let lastError: unknown = null
+  for (const attempt of attempts) {
+    try {
+      const opts = attempt.channel ? { ...baseOptions, channel: attempt.channel } : baseOptions
+      const ctx = await chromium.launchPersistentContext(PROFILE_PATH, opts)
+      console.log(`[BROWSER] Successfully launched ${attempt.label}`)
+      return ctx
+    } catch (err) {
+      lastError = err
+      console.log(`[BROWSER] ${attempt.label} launch attempt failed, trying fallback...`)
+    }
+  }
+
+  const errorMsg =
+    'No compatible browser found. Please install Google Chrome or Microsoft Edge.'
+  sendLog(`[BROWSER] Error: ${errorMsg}`)
+  console.error('[BROWSER] All browser launch options failed:', lastError)
+  throw new Error(errorMsg)
+}
+
+async function launchBrowser(headless = true): Promise<BrowserContext> {
+  const context = await createPersistentContext(headless)
 
   try {
     const saved = loadSavedSession()
@@ -406,16 +446,7 @@ async function performPlaywrightLogin(): Promise<{
 }> {
   try {
     const rememberedEmail = loadSavedSession()?.email
-    const context = await chromium.launchPersistentContext(PROFILE_PATH, {
-      headless: false,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-blink-features=AutomationControlled'
-      ],
-      viewport: { width: 1280, height: 800 }
-    })
+    const context = await createPersistentContext(false)
 
     try {
       const page = context.pages()[0] || (await context.newPage())
@@ -824,14 +855,16 @@ function sendLog(message: string): void {
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
+    title: 'FuckNptel',
     width: 1200,
     height: 800,
     minWidth: 900,
     minHeight: 600,
     show: false,
+    frame: true,
     autoHideMenuBar: true,
     backgroundColor: '#1a1b26',
-    ...(process.platform === 'linux' ? { icon } : {}),
+    icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -985,6 +1018,22 @@ ipcMain.handle('delete-history', (_event, id: string) => {
   } catch (err) {
     return { success: false, error: String(err) }
   }
+})
+
+ipcMain.handle('minimize-window', () => {
+  mainWindow?.minimize()
+})
+
+ipcMain.handle('maximize-window', () => {
+  if (mainWindow?.isMaximized()) {
+    mainWindow.unmaximize()
+  } else {
+    mainWindow?.maximize()
+  }
+})
+
+ipcMain.handle('close-window', () => {
+  mainWindow?.close()
 })
 
 ipcMain.handle('logout', async () => {

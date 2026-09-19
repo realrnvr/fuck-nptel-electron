@@ -72,7 +72,6 @@ textarea:focus-visible {
   background: var(--bg-dark);
   border-bottom: 1px solid var(--border);
   font-size: 12px;
-  -webkit-app-region: drag;
   user-select: none;
 }
 
@@ -80,7 +79,6 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 12px;
-  -webkit-app-region: no-drag;
 }
 
 .tabline-title {
@@ -97,7 +95,6 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 12px;
-  -webkit-app-region: no-drag;
 }
 
 .tabline-user {
