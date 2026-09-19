@@ -11,6 +11,10 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
+app.get('/', (_, res) => {
+  res.send('FUCK NPTEL SERVER!')
+})
+
 // ── Health check ──────────────────────────────
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
