@@ -261,8 +261,15 @@ export default function App(): React.JSX.Element {
     try {
       const res = await window.api.solveAssignment(url.trim(), selectedModel)
       if (res.status === 'failed' || res.error) {
-        setSolveError(res.error || 'Failed to complete assignment')
-        setLogs((prev) => [...prev, `[ERROR] ${res.error || 'Failed to complete assignment'}`])
+        const errorMsg = res.error || 'Failed to complete assignment'
+        if (errorMsg.includes('SESSION_EXPIRED')) {
+          setSolveError('Session expired — please login again.')
+          setLogs((prev) => [...prev, '[ERROR] Session expired — please login again.'])
+          await handleLogout()
+          return
+        }
+        setSolveError(errorMsg)
+        setLogs((prev) => [...prev, `[ERROR] ${errorMsg}`])
       } else {
         setUrl('')
         setLogs((prev) => [...prev, `[DONE] Assignment "${res.title}" completed${res.score ? ` — ${res.score}` : ''}`])
@@ -270,6 +277,12 @@ export default function App(): React.JSX.Element {
       void loadHistory()
     } catch (err: unknown) {
       const msg = (err as Error)?.message || 'An error occurred while solving assignment'
+      if (msg.includes('SESSION_EXPIRED')) {
+        setSolveError('Session expired — please login again.')
+        setLogs((prev) => [...prev, '[ERROR] Session expired — please login again.'])
+        await handleLogout()
+        return
+      }
       setSolveError(msg)
       setLogs((prev) => [...prev, `[ERROR] ${msg}`])
     } finally {
