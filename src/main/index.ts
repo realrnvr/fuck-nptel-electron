@@ -723,8 +723,9 @@ async function scrapeAssignment(
       }
 
       if (currentUrl.includes('/preview/') || currentUrl.includes('accounts.google.com')) {
+        clearSavedSession()
         throw new Error(
-          'Not signed in on onlinecourses.nptel.ac.in. Please go to Settings -> Reconnect NPTEL and sign into your Google account in the popup window.'
+          'SESSION_EXPIRED: Your NPTEL session has expired. Please login again.'
         )
       }
     }
